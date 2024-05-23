@@ -51,11 +51,11 @@ def get_model():
 class LaneFollower:
     def __init__(self):
         self.racecar = NvidiaRacecar()
-        self.pid = PIDController(0.004, 0.0005)  # PID 컨트롤러 초기화
-        self.steering_history = deque(maxlen=1)  # 스티어링 이력 저장
-        self.direction_history = deque(maxlen=5)
+        self.pid = PIDController(0.004, 0.0005)  
+        self.steering_history = deque(maxlen=5)  # 스티어링 히스토리 저장 -> average buffer로 사용
+        self.direction_history = deque(maxlen=5) # 방향 표지판 히스토리 저장
         self.throttle_offset = 0
-        self.racecar.throttle_gain = 0.43 #완충
+        self.racecar.throttle_gain = 0.43 # 모터 배터리 완충기준
         self.throttle_reduction = 0
         self.racecar.steering_offset = 0.05
         
@@ -80,7 +80,7 @@ class LaneFollower:
         stop_time = 0
         buffer_time = 0
         
-        throttle_std = 0.347# 스로틀링 기준값
+        throttle_std = 0.347 #스로틀링 기준값 -> 모터 상태에 따라 유동적으로 조정
         weight = 0.012
         
         try:
@@ -115,17 +115,13 @@ class LaneFollower:
                             cls_name = Object_classes[label]
                             # print("==============크기===========:",area , "==============확률===========:" ,score)
                             
-                            if 10000> area > 3000 and score > 0.7:
-                                cross_traffic = True
-                            if area > 3000 and score > 0.5:
-                                bus_traffic = True
-                            if area > 1000 and score > 0.1:
+                            if area > 1000 and score > 0.5:
                                 dir_traffic = True
                                 
-                            if cls_name == 'bus' and bus_traffic:
+                            if cls_name == 'bus' and area > 3000 and score > 0.5:
                                 bus_detect = True
                                 #print("===========버스 감지 ================")
-                            elif cls_name == 'cross' and cross_traffic and not buffer:
+                            elif cls_name == 'cross' and not buffer and 10000> area > 3000 and score > 0.7:
                                 stop_time += 1
                                 #print(stop_time)
                                 #print("========= 횡단보도 감지 ================")
@@ -197,9 +193,9 @@ class LaneFollower:
                 else:
                     self.throttle_offset = throttle_std
                 
-                if buffer and buffer_time < 1:
+                if buffer and buffer_time < 1:# 횡단보도를 보고 멈춘 후 재출 발 할 때 정지마찰력 극복
                     self.throttle_offset = throttle_std + 0.02
-                if frame_count%20 == 0 and not cross _detect:
+                if frame_count%20 == 0 and not cross _detect:# 출력이 딸려서 멈추는 상황 방지
                     self.throttle_offset = throttle_std + 0.01
                 
                 print('Error:',avg_error)
