@@ -199,6 +199,8 @@ class LaneFollower:
                 
                 if buffer and buffer_time < 1:
                     self.throttle_offset = throttle_std + 0.02
+                # if frame_count%20 == 0 and not cross _detect:
+                #     self.throttle_offset = throttle_std + 0.01
                 
                 print('Error:',avg_error)
                 #print('steering angle:',steering_angle)
